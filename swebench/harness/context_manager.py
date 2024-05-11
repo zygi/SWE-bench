@@ -346,9 +346,9 @@ class TestbedContextManager:
 
                     # Install dependencies
                     path_to_reqs = get_requirements(setup_ref_instance, self.testbed)
-                    cmd = f". {path_activate} {env_name} && echo 'activate successful' && pip install -r {path_to_reqs}"
+                    cmd = f"{exec_cmd} run -n {env_name} --no-capture-output " + f"pip install -r {path_to_reqs}"
                     self.log.write(f"Installing dependencies for {env_name}; Command: {cmd}")
-                    self.exec(cmd, shell=True)
+                    self.exec(f"{exec_cmd} run -n {env_name} --no-capture-output " + cmd, shell=True)
                     os.remove(path_to_reqs)
                 elif pkgs == "environment.yml":
                     if "no_use_env" in install and install["no_use_env"]:
@@ -391,14 +391,14 @@ class TestbedContextManager:
                 arch = platform.machine()
                 arch_specific_packages = install.get("arch_specific_packages", {}).get(arch, "")
                 if arch_specific_packages:
-                    cmd = f". {path_activate} {env_name} && conda install {arch_specific_packages} -y"
+                    cmd = f"{exec_cmd} run -n {env_name} --no-capture-output conda install {arch_specific_packages} -y"
                     self.log.write(f"Installing arch-specific packages for {env_name}; Command: {cmd}")
                     self.exec(cmd, shell=True)
 
                 # Install additional packages if specified
                 if "pip_packages" in install:
                     pip_packages = " ".join(install["pip_packages"])
-                    cmd = f". {path_activate} {env_name} && pip install {pip_packages}"
+                    cmd = f"{exec_cmd} run -n {env_name} --no-capture-output pip install {pip_packages}"
                     self.log.write(f"Installing pip packages for {env_name}; Command: {cmd}")
                     self.exec(cmd, shell=True)
 
@@ -512,10 +512,11 @@ class TaskEnvContextManager:
             self.log_file, logger=logger_taskenv,
             prefix=f"[{self.testbed_name}] [{self.instance[KEY_INSTANCE_ID]}]")
 
-        self.cmd_activate = (
-            f". {os.path.join(self.conda_path, 'bin', 'activate')} "
-            + f"{self.venv} && echo 'activate successful'"
-        )
+        # self.cmd_activate = (
+        #     f". {os.path.join(self.conda_path, 'bin', 'activate')} "
+        #     + f"{self.venv} && echo 'activate successful'"
+        # )
+        self.cmd_run = f"{os.path.join(self.conda_path, 'bin', 'activate')} run -n {self.venv} --no-capture-output "
         self.timeout = timeout
 
         self.exec = ExecWrapper(
@@ -597,7 +598,7 @@ class TaskEnvContextManager:
         # Run pre-install set up if provided
         if "pre_install" in specifications:
             for pre_install in specifications["pre_install"]:
-                cmd_pre_install = f"{self.cmd_activate} && {pre_install}"
+                cmd_pre_install = f"{self.cmd_run} {pre_install}"
                 self.log.write(f"Running pre-install setup command: {cmd_pre_install}")
                 out_pre_install = self.exec(
                     cmd_pre_install, timeout=self.timeout, shell=True
@@ -617,7 +618,7 @@ class TaskEnvContextManager:
         if "install" not in specifications:
             return True
 
-        cmd_install = f"{self.cmd_activate} && {specifications['install']}"
+        cmd_install = f"{self.cmd_run} {specifications['install']}"
         self.log.write(f"Running installation command: {cmd_install}")
         try:
             # Run installation command
@@ -716,7 +717,7 @@ class TaskEnvContextManager:
         """
         try:
             # Run test command for task instance
-            test_cmd = f"{self.cmd_activate} && {instance['test_cmd']}"
+            test_cmd = f"{self.cmd_run} {instance['test_cmd']}"
             with open(self.log_file, "a") as f:
                 f.write(f"Test Script: {test_cmd};\n")
 

@@ -3,7 +3,7 @@ from enum import Enum
 MAP_VERSION_TO_INSTALL_SKLEARN = {
     k: {
         "python": "3.6",
-        "packages": "numpy scipy cython pytest pandas matplotlib",
+        "packages": "numpy scipy cython==0.29 pytest pandas matplotlib",
         "install": "pip install -v --no-use-pep517 --no-build-isolation -e .",
         "arch_specific_packages": {
             "aarch64": "gxx_linux-aarch64 gcc_linux-aarch64 make",
